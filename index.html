@@ -1,0 +1,52 @@
+<!doctype html>
+<!--
+  NAKIVO Hub - Google sign-in relay.
+  Google only accepts OAuth redirect URIs on a public domain, but the app lives
+  on an internal address (.vno). Google sends the browser here; this page sends
+  it straight on to the app's own callback with the same ?code=…&state=….
+  It holds no secret: the code is worthless without the client secret, which
+  only the app server has, and the app checks `state` against a cookie.
+  Only the addresses in ALLOWED can be redirected to.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="robots" content="noindex">
+  <meta name="referrer" content="no-referrer">
+  <title>NAKIVO Hub · signing in…</title>
+  <style>
+    body { font-family: system-ui, Segoe UI, Arial, sans-serif; display: grid; place-items: center; min-height: 100vh; margin: 0; background: #f1f5f9; color: #0f172a; }
+    .card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px 28px; max-width: 460px; text-align: center; }
+    .err { color: #b91c1c; }
+    small { color: #64748b; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <p id="msg">Signing you in to NAKIVO Hub…</p>
+    <small>You'll be sent back to the app in a moment.</small>
+  </div>
+  <script>
+    // The app addresses this relay may send the browser back to.
+    var ALLOWED = [
+      "https://hub.nakivo.vno",
+      "https://pjm.nakivo.vno:8443",
+      "http://localhost:3002"
+    ];
+    (function () {
+      var msg = document.getElementById("msg");
+      var q = new URLSearchParams(location.search);
+      var state = q.get("state") || "";
+      var tag = state.split(".")[0];
+      var origin = "";
+      try { origin = atob(tag.replace(/-/g, "+").replace(/_/g, "/")); } catch (e) { origin = ""; }
+      if (ALLOWED.indexOf(origin) < 0) {
+        msg.className = "err";
+        msg.textContent = "This sign-in link isn't for a known NAKIVO Hub address. Start again from the app (Settings · Google).";
+        return;
+      }
+      location.replace(origin + "/api/google/oauth/callback" + location.search);
+    })();
+  </script>
+</body>
+</html>
